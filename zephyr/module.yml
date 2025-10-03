@@ -2,3 +2,4 @@ name: owl-canopen-tools
 build:
   cmake: .
   kconfig: Kconfig
+west-commands: scripts/owl_install_canopen_tools.py
