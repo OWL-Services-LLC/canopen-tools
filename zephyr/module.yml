@@ -1,0 +1,4 @@
+name: owl-canopen-tools
+build:
+  cmake: .
+  kconfig: Kconfig
