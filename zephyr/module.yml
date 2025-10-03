@@ -1,5 +1,1 @@
 name: owl-canopen-tools
-build:
-  cmake: .
-  kconfig: Kconfig
-west-commands: scripts/west-commands.yml
