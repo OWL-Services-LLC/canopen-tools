@@ -2,4 +2,4 @@ name: owl-canopen-tools
 build:
   cmake: .
   kconfig: Kconfig
-west-commands: zephyr/scripts/owl_install_canopen_tools.py
+west-commands: zephyr/scripts/west-commands.yml
