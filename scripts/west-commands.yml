@@ -1,5 +1,5 @@
 west-commands:
-  - file: zephyr/scripts/owl_install_canopen_tools.py
+  - file: scripts/owl_install_canopen_tools.py
     commands:
       - name: owl-install-canopen-tools
         class: OwlInstallCanopenTools
