@@ -1,8 +1,6 @@
 west-commands:
-  - name: owl-install-canopen-tools
-    class: OwlInstallCanopenTools
-    file: zephyr/scripts/owl_install_canopen_tools.py
-    help: Install all CANopen tools (OZE viewer, EDS generator, EDS editor)
-    description: >
-      Runs the three setup scripts in modules/tools/canopen-tools with cwd set
-      to the module root so relative paths work.
+  - file: zephyr/scripts/owl_install_canopen_tools.py
+    commands:
+      - name: owl-install-canopen-tools
+        class: OwlInstallCanopenTools
+        help: Install all CANopen tools (OZE viewer, EDS generator, EDS editor)
