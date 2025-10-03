@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# setup-canopen-eds-editor.sh
-# Installs Mono, CANopen EDS Editor (from CANopenEditor-v4.2.3-binary.zip),
-# and creates a wrapper command "owl-eds-editor" in PATH that launches
-# net481/EDSEditor.exe with Mono, forwarding all CLI arguments.
+#
+# Copyright (C) 2025 - OWL Services LLC
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License (version 2) as published by the
+# FSF - Free Software Foundation
+#
 set -euo pipefail
 
 APP_NAME="CANopenEditor"

@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# setup.sh
-# Expected location:
-#  - this script is in the same directory as the folder `oze-canopen-viewer/`
-#  - ./oze-canopen-viewer contains the source code (Cargo.toml, src/, etc.)
 #
-# What it does:
-#  - checks if the tool is already installed (and exits doing nothing if so)
-#  - installs system dependencies (Debian/Ubuntu)
-#  - installs rustup if needed
-#  - compiles in release mode with cargo
-#  - installs the binary into /usr/local/bin
-#  - applies setcap so you don’t need sudo to use SocketCAN
-#  - cleans the local build artifacts after successful install
+# Copyright (C) 2025 - OWL Services LLC
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License (version 2) as published by the
+# FSF - Free Software Foundation
+#
+
+set -euo pipefail
 
 REPO_DIR="oze-canopen-viewer"
 TARGET_BIN_NAME="oze-canopen-viewer"   # adjust if the binary has a different name

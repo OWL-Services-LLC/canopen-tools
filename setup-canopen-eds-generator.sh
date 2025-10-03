@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# setup-open-eds-editor.sh
-# Install Mono, Open EDS Editor, and create a wrapper command in PATH.
+#
+# Copyright (C) 2025 - OWL Services LLC
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License (version 2) as published by the
+# FSF - Free Software Foundation
+#
+
 set -euo pipefail
 
 APP_NAME="OpenEDSEditor"
