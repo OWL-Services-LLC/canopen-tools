@@ -1,0 +1,26 @@
+# Configuration for CAN <-> TCP bridge
+
+# Role of this instance: 'server' listens for a peer; 'client' connects to the server.
+role: server  # or: client
+
+# Server settings (used when role == 'server')
+bind_host: 0.0.0.0
+port: 50000
+
+# Client settings (used when role == 'client')
+peer_host: 192.168.1.50
+peer_port: 50000
+
+# TCP
+tcp_keepalive: true             # Enable TCP keepalive
+reconnect_delay_sec: 2.0        # Reconnect/backoff delay in seconds
+
+# CAN interface settings
+can:
+  iface: vcan0                  # e.g., can0, can1, vcan0
+  bitrate: 500000               # Ignored for vcan; used if bringup: true
+  fd: false                     # true to enable CAN FD on the socket (requires kernel & iface support)
+  data_bitrate: 2000000         # Only relevant if fd: true and brs: true
+  brs: false                    # Use bitrate switching when sending FD frames
+  bringup: false                # If true, script will run 'ip link' to setup & bring up the interface (root required)
+  restart_ms: 100               # Optional controller auto-restart in ms
