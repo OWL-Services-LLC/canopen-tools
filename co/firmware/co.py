@@ -4,7 +4,6 @@ import canopen
 import threading
 import time
 from datetime import datetime
-import subprocess
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -34,6 +33,23 @@ NMT_STATE_TEXT = {
     5: "Operational",
     127: "Pre-operational"
 }
+
+# Object dictionary indexes for program download (CiA 302-3)
+H1F50_PROGRAM_DATA = 0x1F50
+H1F51_PROGRAM_CTRL = 0x1F51
+H1F56_PROGRAM_SWID = 0x1F56
+H1F57_FLASH_STATUS = 0x1F57
+PROGRAM_NUMBER     = 1
+
+# Program control commands
+PROGRAM_CTRL_STOP    = 0x00
+PROGRAM_CTRL_START   = 0x01
+PROGRAM_CTRL_CLEAR   = 0x03
+PROGRAM_CTRL_CONFIRM = 0x80
+
+DEFAULT_TIMEOUT      = 60.0
+DEFAULT_SDO_TIMEOUT  = 10.0
+DEFAULT_BUFFER_SIZE  = 1024
 
 class EventMonitor:
     def __init__(self):
@@ -505,7 +521,52 @@ def show_node_od_info(nodes, nodes_meta):
     print("\nPress Enter to go back to the main menu.")
     input()
 
-def flash_firmware(nodes, nodes_meta):
+def create_flash_object_dictionary():
+    objdict = canopen.objectdictionary.ObjectDictionary()
+
+    array = canopen.objectdictionary.Array('Program data', H1F50_PROGRAM_DATA)
+    member = canopen.objectdictionary.Variable('', H1F50_PROGRAM_DATA, subindex=1)
+    member.data_type = canopen.objectdictionary.DOMAIN
+    array.add_member(member)
+    objdict.add_object(array)
+
+    array = canopen.objectdictionary.Array('Program control', H1F51_PROGRAM_CTRL)
+    member = canopen.objectdictionary.Variable('', H1F51_PROGRAM_CTRL, subindex=1)
+    member.data_type = canopen.objectdictionary.UNSIGNED8
+    array.add_member(member)
+    objdict.add_object(array)
+
+    array = canopen.objectdictionary.Array('Program software ID', H1F56_PROGRAM_SWID)
+    member = canopen.objectdictionary.Variable('', H1F56_PROGRAM_SWID, subindex=1)
+    member.data_type = canopen.objectdictionary.UNSIGNED32
+    array.add_member(member)
+    objdict.add_object(array)
+
+    array = canopen.objectdictionary.Array('Flash error ID', H1F57_FLASH_STATUS)
+    member = canopen.objectdictionary.Variable('', H1F57_FLASH_STATUS, subindex=1)
+    member.data_type = canopen.objectdictionary.UNSIGNED32
+    array.add_member(member)
+    objdict.add_object(array)
+
+    return objdict
+
+
+def wait_for_flash_status_ok(flash_node, timeout=DEFAULT_TIMEOUT):
+    end_time = time.time() + timeout
+    status = 0xFFFFFFFF
+    while True:
+        try:
+            status = flash_node.sdo[H1F57_FLASH_STATUS][PROGRAM_NUMBER].raw
+            if status == 0:
+                return status
+        except Exception:
+            pass
+        if time.time() > end_time:
+            return status
+        time.sleep(0.5)
+
+
+def flash_firmware(network, nodes, nodes_meta):
     node = choose_node(nodes, nodes_meta)
     if node is None:
         print("Add the node first with option 1.")
@@ -524,24 +585,86 @@ def flash_firmware(nodes, nodes_meta):
         print("\nPress Enter to go back to the main menu."); input()
         return
 
+    # Create a flash node with synthetic OD on the existing network
+    flash_node = network.add_node(node.id, create_flash_object_dictionary())
+    flash_node.sdo.RESPONSE_TIMEOUT = DEFAULT_SDO_TIMEOUT
+
     try:
-        project_dir = os.path.abspath(os.path.join(os.path.dirname(bin_path), "../../.."))
-        build_dir = os.path.abspath(os.path.join(os.path.dirname(bin_path), "../.."))
-        
-        cmd = [
-            "west", "flash",
-            "--skip-rebuild",
-            "--build-dir", build_dir,
-            "--domain", "canopen_firmware_update",
-            "--runner", "canopen"
-        ]
-        
-        print(f"\nRunning: {' '.join(cmd)}\n")
-        result = subprocess.run(cmd, cwd=project_dir)
-        if result.returncode == 0:
-            print("\nFlash completed successfully!")
-        else:
-            print(f"\nFlash failed with return code {result.returncode}")
+        # Step 1 - Read current SW ID
+        try:
+            swid = flash_node.sdo[H1F56_PROGRAM_SWID][PROGRAM_NUMBER].raw
+            print(f"\n[1/6] Current SW ID: 0x{swid:08x}")
+        except Exception:
+            print("\n[1/6] Could not read current SW ID")
+
+        # Step 2 - Wait for flash status
+        print("[2/6] Waiting for flash status...")
+        status = wait_for_flash_status_ok(flash_node, timeout=DEFAULT_TIMEOUT)
+        if status != 0:
+            print(f"      Warning: flash status 0x{status:08x}")
+
+        # Step 3 - Enter pre-operational
+        print("[3/6] Entering pre-operational mode...")
+        flash_node.nmt.state = 'PRE-OPERATIONAL'
+
+        # Step 4 - Stop and clear
+        print("[4/6] Stopping program...")
+        flash_node.sdo[H1F51_PROGRAM_CTRL][PROGRAM_NUMBER].raw = PROGRAM_CTRL_STOP
+
+        print("[5/6] Clearing program (this may take a few seconds)...")
+        flash_node.sdo[H1F51_PROGRAM_CTRL][PROGRAM_NUMBER].raw = PROGRAM_CTRL_CLEAR
+        status = wait_for_flash_status_ok(flash_node, timeout=DEFAULT_TIMEOUT)
+        if status != 0:
+            raise ValueError(f"Flash clear failed: status 0x{status:08x}")
+        print("      Flash cleared OK")
+
+        # Step 6 - Download firmware
+        print("[6/6] Downloading firmware...")
+        bin_size = os.path.getsize(bin_path)
+        bar_width = 40
+        total_sent = 0
+
+        with open(bin_path, 'rb') as infile:
+            with flash_node.sdo[H1F50_PROGRAM_DATA][PROGRAM_NUMBER].open(
+                'wb', buffering=DEFAULT_BUFFER_SIZE, size=bin_size, block_transfer=False
+            ) as outfile:
+                while True:
+                    chunk = infile.read(DEFAULT_BUFFER_SIZE // 2)
+                    if not chunk:
+                        break
+                    outfile.write(chunk)
+                    total_sent += len(chunk)
+                    percent = total_sent / bin_size
+                    filled = int(bar_width * percent)
+                    bar = "#" * filled + "-" * (bar_width - filled)
+                    print(f"\r      [{bar}] {total_sent}/{bin_size}B", end="", flush=True)
+        print()
+
+        status = wait_for_flash_status_ok(flash_node, timeout=DEFAULT_TIMEOUT)
+        if status != 0:
+            raise ValueError(f"Firmware download failed: status 0x{status:08x}")
+        print("      Download OK")
+
+        try:
+            swid = flash_node.sdo[H1F56_PROGRAM_SWID][PROGRAM_NUMBER].raw
+            print(f"      New SW ID: 0x{swid:08x}")
+        except Exception:
+            pass
+
+        # Start program
+        print("      Starting program (waiting for boot-up)...")
+        flash_node.sdo[H1F51_PROGRAM_CTRL][PROGRAM_NUMBER].raw = PROGRAM_CTRL_START
+        try:
+            flash_node.nmt.wait_for_bootup(timeout=DEFAULT_TIMEOUT)
+            print("      Boot-up received OK")
+        except Exception:
+            print("      Warning: no boot-up message received within timeout")
+
+        # Confirm program
+        flash_node.nmt.state = 'PRE-OPERATIONAL'
+        flash_node.sdo[H1F51_PROGRAM_CTRL][PROGRAM_NUMBER].raw = PROGRAM_CTRL_CONFIRM
+        print("\nFlash completed successfully!")
+
     except Exception as e:
         print(f"\nFlash error: {e}")
 
@@ -606,7 +729,7 @@ def main():
             elif op == "12":
                 show_node_od_info(nodes, nodes_meta)
             elif op == "13":
-                flash_firmware(nodes, nodes_meta)
+                flash_firmware(network, nodes, nodes_meta)
             elif op == "14":
                 network.disconnect()
                 break
