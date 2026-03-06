@@ -1,0 +1,5 @@
+# CANopen firmware update configuration
+# These values are used as defaults and can be overridden by CLI arguments.
+
+interface: vcan0
+baudrate: 500000
