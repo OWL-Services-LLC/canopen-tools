@@ -34,7 +34,7 @@ NMT_STATE_TEXT = {
     127: "Pre-operational"
 }
 
-# Object dictionary indexes for program download (CiA 302-3)
+# Object dictionary indexes for program download
 H1F50_PROGRAM_DATA = 0x1F50
 H1F51_PROGRAM_CTRL = 0x1F51
 H1F56_PROGRAM_SWID = 0x1F56
@@ -626,7 +626,7 @@ def flash_firmware(network, nodes, nodes_meta):
 
         with open(bin_path, 'rb') as infile:
             with flash_node.sdo[H1F50_PROGRAM_DATA][PROGRAM_NUMBER].open(
-                'wb', buffering=DEFAULT_BUFFER_SIZE, size=bin_size, block_transfer=False
+                'wb', buffering=DEFAULT_BUFFER_SIZE, size=bin_size, block_transfer=True
             ) as outfile:
                 while True:
                     chunk = infile.read(DEFAULT_BUFFER_SIZE // 2)
@@ -637,7 +637,7 @@ def flash_firmware(network, nodes, nodes_meta):
                     percent = total_sent / bin_size
                     filled = int(bar_width * percent)
                     bar = "#" * filled + "-" * (bar_width - filled)
-                    print(f"\r      [{bar}] {total_sent}/{bin_size}B", end="", flush=True)
+                    print(f"\r {percent*100:.1f}% [{bar}] {total_sent}/{bin_size}B", end="", flush=True)
         print()
 
         status = wait_for_flash_status_ok(flash_node, timeout=DEFAULT_TIMEOUT)
