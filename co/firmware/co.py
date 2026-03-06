@@ -4,6 +4,7 @@ import canopen
 import threading
 import time
 from datetime import datetime
+import subprocess
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -22,7 +23,8 @@ MENU_TEXT = """
 10) List added nodes
 11) Show node state
 12) Show node OD info
-13) Exit
+13) Flash firmware
+14) Exit
 Choose an option: 
 """
 
@@ -503,14 +505,53 @@ def show_node_od_info(nodes, nodes_meta):
     print("\nPress Enter to go back to the main menu.")
     input()
 
+def flash_firmware(nodes, nodes_meta):
+    node = choose_node(nodes, nodes_meta)
+    if node is None:
+        print("Add the node first with option 1.")
+        print("\nPress Enter to go back to the main menu."); input()
+        return
+
+    bin_path = input("Enter path to firmware .bin file: ").strip()
+    if not os.path.isfile(bin_path):
+        print(f"Error: file not found: {bin_path}")
+        print("\nPress Enter to go back to the main menu."); input()
+        return
+
+    confirm = input(f"Flash node {node.id} with {os.path.basename(bin_path)}? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("Flash cancelled.")
+        print("\nPress Enter to go back to the main menu."); input()
+        return
+
+    try:
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(bin_path), "../../.."))
+        build_dir = os.path.abspath(os.path.join(os.path.dirname(bin_path), "../.."))
+        
+        cmd = [
+            "west", "flash",
+            "--skip-rebuild",
+            "--build-dir", build_dir,
+            "--domain", "canopen_firmware_update",
+            "--runner", "canopen"
+        ]
+        
+        print(f"\nRunning: {' '.join(cmd)}\n")
+        result = subprocess.run(cmd, cwd=project_dir)
+        if result.returncode == 0:
+            print("\nFlash completed successfully!")
+        else:
+            print(f"\nFlash failed with return code {result.returncode}")
+    except Exception as e:
+        print(f"\nFlash error: {e}")
+
+    print("\nPress Enter to go back to the main menu."); input()
+
 def render_menu():
     print(MENU_TEXT, end="")
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python co.py <eds1.eds,eds2.eds,...>")
-        sys.exit(1)
-    eds_files = load_eds_files(sys.argv[1].split(','))
+    eds_files = load_eds_files(sys.argv[1].split(',')) if len(sys.argv) > 1 else []
 
     interface = input("Enter CAN interface (default 'vcan0'): ").strip()
     if interface == "":
@@ -565,6 +606,8 @@ def main():
             elif op == "12":
                 show_node_od_info(nodes, nodes_meta)
             elif op == "13":
+                flash_firmware(nodes, nodes_meta)
+            elif op == "14":
                 network.disconnect()
                 break
             else:
