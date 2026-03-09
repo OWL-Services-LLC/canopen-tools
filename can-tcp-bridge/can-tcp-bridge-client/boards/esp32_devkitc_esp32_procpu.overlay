@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2021 Vestas Wind Systems A/S
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * CAN/TWAI overlay for ESP32-DevKitC-WROOM (PRO CPU core)
+ * GPIO21 → CAN-TX, GPIO22 → CAN-RX, 500 kbit/s
+ *
+ * Tested with Zephyr 4.0-stable.
+ */
+
+#include <zephyr/dt-bindings/pinctrl/esp32-pinctrl.h>
+
+/ {
+    chosen {
+        zephyr,canbus = &twai;
+    };
+
+    aliases {
+        green-led = &extra_green_led;
+        red-led = &extra_red_led;
+    };
+
+    leds {
+        compatible = "gpio-leds";
+
+        extra_red_led: extra_red_led {
+            gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+            label = "Red LED";
+        };
+
+        extra_green_led: extra_green_led {
+            gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+            label = "Green LED";
+        };
+    };
+};
+
+&pinctrl {
+    twai0_default: twai0_default {
+        group1 {
+            pinmux = <TWAI_TX_GPIO21>, <TWAI_RX_GPIO22>;
+        };
+    };
+};
+
+&twai {
+    status = "okay";
+    pinctrl-0 = <&twai0_default>;
+    pinctrl-names = "default";
+    bitrate = <500000>;
+};
+
+&wifi {
+    status = "okay";
+};

@@ -1,0 +1,41 @@
+#
+# Copyright (C) 2025 - OWL Services LLC
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License (version 2) as published by the
+# FSF - Free Software Foundation
+#
+
+mainmenu "CANOpen TCP Bridge"
+
+menu "Zephyr"
+    source "Kconfig.zephyr"
+endmenu
+
+menu "Application"
+
+    config APP_WIFI_SSID
+        string "Wi-Fi SSID"
+        default ""
+
+    config APP_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+
+    config APP_SERVER_HOST
+        string "Server host/IP"
+        default "192.168.1.10"
+
+    config APP_SERVER_PORT
+        int "Server TCP port"
+        default 50000
+
+    module = CANOPEN_TCP_BRIDGE
+    module-str = CANOpen TCP Bridge
+    source "subsys/logging/Kconfig.template.log_config"
+
+endmenu
+
+menu "Connection Manager"
+    rsource "connection_manager/Kconfig"
+endmenu
