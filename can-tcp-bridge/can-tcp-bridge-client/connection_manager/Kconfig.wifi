@@ -1,0 +1,40 @@
+#
+# Copyright (C) 2025 - OWL Services LLC
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License (version 2) as published by the
+# FSF - Free Software Foundation
+#
+
+menuconfig CONN_MGR_WIFI
+    bool "Enable WiFi connection"
+    default n
+
+if CONN_MGR_WIFI
+menu "Connection Manager"
+
+    config NTP_IPV4_BUFFER_SIZE
+    int "Buffer to store NTP IPv4 address"
+    default 4
+    help
+        Size of buffer for IPv4 address.
+
+    config WIFI_NUM_TRIES
+    int "Number of tries for WiFi connection"
+    default 10
+    help
+        Number of tries for WiFi connection.
+
+    config WIFI_CONN_DELAY
+    int "Amount of delay between each connection attempt(in miliseconds)"
+    default 500
+    help
+        Amount of delay between each connection attempt(in miliseconds)
+
+    module = CONNECTION_MANAGER
+    module-str = connection manager
+    module-help = Connection manager.
+    source "subsys/logging/Kconfig.template.log_config"
+
+endmenu
+endif # CONN_MGR_WIFI
