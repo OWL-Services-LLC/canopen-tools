@@ -1,8 +1,8 @@
 # Standalone CLI script for CANopen firmware update.
 #
 # Usage:
-#   python co-firmware-update.py --node-id 1 --bin /path/to/zephyr.signed.bin
-#   python co-firmware-update.py --node-id 1 --bin /path/to/zephyr.signed.bin --interface can0 --baudrate 500000
+#   python co-firmware-update.py --node-id 1 --bin /path/to/zephyr.bin
+#   python co-firmware-update.py --node-id 1 --bin /path/to/zephyr.bin --interface can0 --baudrate 500000
 
 import argparse
 import os
@@ -202,14 +202,14 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python co-firmware-update.py --node-id 1 --bin build/zephyr/zephyr.signed.bin
-  python co-firmware-update.py --node-id 1 --bin build/zephyr/zephyr.signed.bin --interface can0 --baudrate 500000
+  python co-firmware-update.py --node-id 1 --bin build/zephyr/zephyr.bin
+  python co-firmware-update.py --node-id 1 --bin build/zephyr/zephyr.bin --interface can0 --baudrate 500000
         """,
     )
     parser.add_argument("--node-id", type=int, required=True,
                         help="CANopen node ID of the target device")
     parser.add_argument("--bin", required=True, dest="bin_path",
-                        help="Path to the signed firmware binary (zephyr.signed.bin)")
+                        help="Path to the firmware binary")
     parser.add_argument("--interface", default=None,
                         help="CAN interface (overrides co-firmware-update.yaml)")
     parser.add_argument("--baudrate", type=int, default=None,
